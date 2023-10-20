@@ -1,0 +1,63 @@
+/* Stylizacja ogólna dla postów */
+.post {
+    display: flex;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    transition: 0.3s;
+}
+
+.post:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Stylizacja dla kontenera autora */
+.author_container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.author_container img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;  /* Tworzy okrągły avatar */
+    margin-right: 15px;
+}
+
+.author_container p {
+    margin: 0;
+}
+
+/* Stylizacja dla kontenera komentarza */
+.comment_container {
+    margin-top: 10px;
+}
+
+.comment_container p {
+    margin: 0;
+    padding-left: 65px;  /* Tak samo jak szerokość obrazka + odstęp, aby tekst nie nachodził na obrazek */
+}
+
+/* Stylizacja paginacji */
+.pagination {
+    justify-content: center;
+}
+
+.pagination li a {
+    color: #333;
+}
+
+.pagination li.active a {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: #fff;
+}
+
+.pagination li.disabled a {
+    color: #aaa;
+    pointer-events: none;
+}

@@ -1,0 +1,114 @@
+{% extends "network/layout.html" %}
+{% load static %}
+
+{% block script %}
+<script>
+    let currentPage = 1; 
+    let totalPages;
+
+    function disable_buttons() {
+        if (currentPage === 1) {
+            document.querySelector('#prev-button').className = "page-item disabled";
+        } else {
+            document.querySelector('#prev-button').className = "page-item";
+        }
+        console.log("disable_buttons called");
+        console.log("Current Page:", currentPage);
+        console.log("Total Pages:", totalPages);
+        
+        if (currentPage === totalPages) {
+            document.querySelector('#next-button').className = "page-item disabled";
+        } else {
+            document.querySelector('#next-button').className = "page-item";
+        }
+    }
+
+    function loadPosts(pageNumber) {
+        fetch(`http://127.0.0.1:8000/posts/?page=${pageNumber}`)
+        .then(response => response.json())
+        .then(data => {
+            document.querySelector('#posts').innerHTML = '';
+
+            data.results.forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = "post";
+
+                const comment_container = document.createElement('div');
+                const author_container = document.createElement('div');
+                const author = document.createElement('p');
+                const body = document.createElement('p');
+                const created_at = document.createElement('p');
+                const image = document.createElement('img');
+                
+                author.innerHTML = `<strong>Author:</strong> ${post.author_username}`;
+                body.innerHTML = `<strong>Content:</strong> ${post.body}`;
+                created_at.innerHTML = `<strong>Add:</strong> ${post.created_at}`;
+                image.src = post.profile_image;
+
+                author_container.className = "author_container";
+                author_container.append(author, image, created_at);
+                
+                comment_container.className = "comment_container";
+                comment_container.append(body);
+
+                postDiv.append(author_container, comment_container);
+                document.querySelector('#posts').append(postDiv); 
+            });
+
+            disable_buttons();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadPosts(currentPage);
+
+        fetch("/posts/")
+        .then(response => response.json())
+        .then(data => {
+            let totalPosts = data.count;
+            let postsPerPage = 2;
+            totalPages = Math.ceil(totalPosts / postsPerPage);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('a');
+                const list_item = document.createElement('li');
+                button.className = "page-link";
+                button.innerHTML = i;
+                button.addEventListener('click', () => {
+                    currentPage = i;
+                    loadPosts(i);
+                });
+                list_item.className = "page-item";
+                list_item.append(button);
+                let childrens = document.querySelector('.pagination').children;
+                let before_last = childrens[childrens.length - 1];
+                document.querySelector('.pagination').insertBefore(list_item, before_last);
+            }
+
+            document.querySelector('#prev-button').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage -= 1;
+                    loadPosts(currentPage);
+                }
+            });
+            document.querySelector('#next-button').addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage += 1;
+                    loadPosts(currentPage);
+                }
+            });
+        });
+    });
+</script>
+{% endblock script %}
+
+{% block body %}
+    <nav aria-label="Page navigation example">
+        <ul class="pagination">
+        <li id="prev-button"><a class="page-link" href="#">Previous</a></li>
+        <li id="next-button"><a class="page-link" href="#">Next</a></li>
+        </ul>
+    </nav>
+    <div id="posts">
+    </div>
+{% endblock %}
