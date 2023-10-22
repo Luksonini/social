@@ -1,16 +1,18 @@
 
 from django.urls import path
-from .views import PostListView
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("content/", views.index, name="index"),
+    path("content/<str:username>", views.index, name="profile"),
     path("login", views.login_view, name="login"),
     path("logout", views.logout_view, name="logout"),
     path("register", views.register, name="register"),
-    path('posts/', PostListView.as_view(), name='post-list'),
+    path('posts/', views.post_list, name='post-list'),
+    path('posts/<int:id>/', views.post_update, name='post-update'),
+    path('posts/<int:post_id>/like/', views.like_post, name='like-post'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

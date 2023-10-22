@@ -1,16 +1,19 @@
 /* Stylizacja ogólna dla postów */
-.post {
+.post, .new-post {
+    position: relative;
     display: flex;
+    width: 75%;
+    align-items: center;
     border: 1px solid #e0e0e0;
     border-radius: 5px;
     padding: 15px;
-    margin: 15px 0;
+    margin: 15px auto 0 auto;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     background-color: #fff;
     transition: 0.3s;
 }
 
-.post:hover {
+.post:hover, .new-post:hover {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
@@ -18,23 +21,54 @@
 .author_container {
     display: flex;
     flex-direction: column;
-    margin-bottom: 15px;
 }
 
 .author_container img {
-    width: 50px;
-    height: 50px;
+    width: 100px;
+    height: 100px;
+    margin-right: 10px;
     border-radius: 50%;  /* Tworzy okrągły avatar */
-    margin-right: 15px;
 }
 
 .author_container p {
     margin: 0;
 }
 
+.likes-container {
+    text-align: center;
+    position: relative;
+    transition: transform 0.3s;
+}
+
+.likes-container:hover {
+    transform: scale(0.9); /* pomniejszenie o 10% podczas najechania */
+}
+
+#heart-image {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 /* Stylizacja dla kontenera komentarza */
 .comment_container {
+    flex: 1;
+    margin-left: auto;
+    margin-right: auto;
     margin-top: 10px;
+}
+
+.likes-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    z-index: 2;
 }
 
 .comment_container p {
@@ -60,4 +94,47 @@
 .pagination li.disabled a {
     color: #aaa;
     pointer-events: none;
+}
+
+.textara_field {
+    border: 1px solid;
+    border-color: #007bff;
+    min-height: 100%;
+    width: 90%;
+    border: none;
+    background-color: #ebf5ff;
+    height: 148px;
+}
+
+.textara_field:focus {
+   
+    outline: none;
+}
+
+.edit_btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: #007BFF;
+    color: #FFF;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.edit_btn:hover {
+    background-color: #0056b3;  /* Kolor tła przy najechaniu */
+    color: #FFF;                /* Kolor tekstu przy najechaniu (bez zmian) */
+}
+
+.edit_btn:active {
+    transform: scale(0.98);     /* Lekkie "wciśnięcie" przycisku podczas klikania */
+}
+
+.edit_btn:focus {
+    outline: none;              /* Usunięcie domyślnej ramki podczas fokusowania */
+    box-shadow: 0 0 5px #007BFF; /* Dodanie cienia wokół przycisku podczas fokusowania */
 }

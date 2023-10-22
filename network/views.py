@@ -1,46 +1,98 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.http import JsonResponse
-from django.core.serializers import serialize
-
 from .models import User, PostModel
 from rest_framework import serializers
-from rest_framework.generics import ListAPIView
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import IsAuthenticated
+from . models import User, LikeModel
+from django.contrib.auth.decorators import login_required
 
+@login_required(login_url='login')
+def index(request, username="all"):
+    return render(request, "network/index.html", {"username": username})
 
-def index(request):
-    return render(request, "network/index.html")
-
-def custom_comment_serializer(posts):
-    serialized_data = []
-    
-    for post in posts:
-        serialized_data.append({
-            'author_id': post.author.id,
-            'author_username': post.author.username,
-            'body': post.body,
-            'created_at': post.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        })
-
-    return serialized_data
+@login_required(login_url='login')
+def profile(request, username):
+    return render(request, "network/index.html", {"username": username})
 
 
 class PostModelSerializer(serializers.ModelSerializer):
     author_username = serializers.CharField(source='author.username', read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", required=False, read_only=True) 
     profile_image = serializers.ImageField(source='author.profile_picture', read_only=True)
+    likes = serializers.IntegerField(source='post_likes.count', read_only=True)
 
     class Meta:
         model = PostModel
-        fields = ('author', 'author_username', 'body', 'created_at', 'profile_image')
+        fields = ('id', 'author', 'author_username', 'body', 'created_at', 'profile_image', 'likes')
 
 
-class PostListView(ListAPIView):
-    queryset = PostModel.objects.all()
-    serializer_class = PostModelSerializer
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def post_list(request):
+    if request.method == 'GET':
+        # obsługa żądania GET (pobieranie postów i paginacja)
+        if 'username' in request.query_params:
+            username = request.query_params['username']
+            if username != 'all':
+                posts = PostModel.objects.filter(author__username=username)
+            else:
+                posts = PostModel.objects.all().order_by('-created_at')
+        else:
+            posts = PostModel.objects.all().order_by('-created_at')
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 2  # Ustaw liczbę postów na stronę
+        result_page = paginator.paginate_queryset(posts, request)
+
+        serializer = PostModelSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    elif request.method == 'POST':
+        # obsługa żądania POST (tworzenie nowego posta)
+        serializer = PostModelSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(author=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+def post_update(request, id):
+    try:
+        post = PostModel.objects.get(id=id)
+    except PostModel.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    serializer = PostModelSerializer(post, data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def like_post(request, post_id):
+    post = PostModel.objects.get(id=post_id)  # Pobranie obiektu publikacji.
+    
+    # Sprawdzenie, czy użytkownik już polubił post.
+    if LikeModel.objects.filter(user=request.user, post=post).exists():
+        return Response({'status': 'already liked'})
+    
+    # Dodanie polubienia.
+    LikeModel.objects.create(user=request.user, post=post)
+    
+    # Zwracanie odpowiedzi HTTP.
+    return Response({'status': 'liked'})
 
 
 def login_view(request):
@@ -65,7 +117,7 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse("index"))
+    return HttpResponseRedirect(reverse("login"))
 
 
 def register(request):

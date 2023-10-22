@@ -3,16 +3,123 @@
 
 {% block script %}
 <script>
+    
     let currentPage = 1; 
     let totalPages;
+    let display_posts = "{{username}}";
 
-    function disable_buttons() {
+    function displayProfileElements () {
+        if (display_posts !== "all"){
+            const new_post = document.querySelector(".new-post");
+            new_post.style.display = "none";
+        }
+    };
+
+    function sendNewPost() {
+        const input = document.querySelector('#new-post-field');  
+        input.addEventListener('keydown', function(event) {
+            if (event.key === "Enter") {
+                const userDataElement = document.getElementById('user-data');
+                event.preventDefault();  
+                fetch('/posts/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.getElementById("csrfToken").value 
+                    },
+                    body: JSON.stringify({
+                        "body": input.value,
+                        "author" :  userDataElement.getAttribute('data-user')
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Server response:', response.statusText);
+                        return response.text().then(text => {
+                            throw new Error(text);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success:', data);
+                    loadPosts(currentPage);
+                    input.value = ''; 
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+            }
+        });
+    }
+
+    function likePost(postId) {
+        fetch(`/posts/${postId}/like/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.getElementById("csrfToken").value 
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Server response:', response.statusText);
+                return response.text().then(text => {
+                    throw new Error(text);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Success:', data);
+            loadPosts(currentPage);
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    };
+    
+  
+    function changePostListener(element, input_body, post) {
+    element.style.display = "none";
+    input_body.style.display = "block";
+    input_body.autoFocus = true;
+    input_body.addEventListener('keydown', function(event){
+        if (event.key === "Enter"){
+            const body = input_body.value;
+            fetch(`/posts/${post.id}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.getElementById("csrfToken").value 
+                },
+                body: JSON.stringify({
+                    "id": post.id,
+                    "author" : post.author,
+                    "author_username" : post.author_username,
+                    "body": body,
+                    "created_at" : post.created_at,
+                    "profile_image" : post.profile_image
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                element.style.display = "block";
+                input_body.style.display = "none";
+                loadPosts(currentPage);
+            });
+            
+        }
+        });
+    };
+
+    function disablePaginatorButtons() {
         if (currentPage === 1) {
             document.querySelector('#prev-button').className = "page-item disabled";
         } else {
             document.querySelector('#prev-button').className = "page-item";
         }
-        console.log("disable_buttons called");
+        console.log("disablePaginatorButtons called");
         console.log("Current Page:", currentPage);
         console.log("Total Pages:", totalPages);
         
@@ -23,45 +130,78 @@
         }
     }
 
+    function createPostDiv(post) {
+        const postDiv = document.createElement('div');
+        postDiv.className = "post";
+
+        const comment_container = document.createElement('div');
+        const author_container = document.createElement('div');
+        const author = document.createElement('a');
+        const body = document.createElement('p');
+        const input_body = document.createElement('textarea')
+        const created_at = document.createElement('p');
+        const image = document.createElement('img');
+        const likes_container = document.createElement('div')
+        const likes_image = document.createElement('img')
+        const likes = document.createElement('p')
+        
+        author.href = `${post.author_username}`; 
+        author.innerHTML = `<strong>${post.author_username}</strong>`;
+        author.style.textAlign = 'center';
+        body.innerHTML = `${post.body}`;
+        input_body.innerHTML = `${post.body}`;
+        input_body.className = 'textara_field'
+        input_body.autoFocus = true
+        input_body.style.display = 'none'
+
+        created_at.innerHTML = `Posted: ${post.created_at}`;
+        created_at.style.fontSize = '10px';
+        image.src = post.profile_image;
+
+        likes_image.src = `{% static 'network/heart.png' %}`;
+        likes_image.id = "heart-image"
+        likes_image.addEventListener('click', () => likePost(post.id));
+        likes.innerHTML = post.likes;
+        likes.className = 'likes-number';
+        likes_container.className = "likes-container"
+        likes_container.append(likes_image, likes);
+
+        if (post.author_username === "{{request.user.username}}") {
+            const edit_button = document.createElement('button');
+            edit_button.innerText = "Edit";  
+            edit_button.className = "edit_btn"
+            edit_button.onclick = () => changePostListener(comment_container, input_body, post); 
+            comment_container.append(edit_button);
+        }
+        author_container.className = "author_container";
+        author_container.append(image, author, created_at, likes_container);
+        
+        comment_container.className = "comment_container";
+        comment_container.append(body);
+
+        postDiv.append(author_container, comment_container, input_body);
+        
+        return postDiv;
+    }
+
     function loadPosts(pageNumber) {
-        fetch(`http://127.0.0.1:8000/posts/?page=${pageNumber}`)
+        fetch(`/posts/?username=${display_posts}&page=${pageNumber}`)
         .then(response => response.json())
-        .then(data => {
+        .then(data => { 
             document.querySelector('#posts').innerHTML = '';
-
             data.results.forEach(post => {
-                const postDiv = document.createElement('div');
-                postDiv.className = "post";
-
-                const comment_container = document.createElement('div');
-                const author_container = document.createElement('div');
-                const author = document.createElement('p');
-                const body = document.createElement('p');
-                const created_at = document.createElement('p');
-                const image = document.createElement('img');
-                
-                author.innerHTML = `<strong>Author:</strong> ${post.author_username}`;
-                body.innerHTML = `<strong>Content:</strong> ${post.body}`;
-                created_at.innerHTML = `<strong>Add:</strong> ${post.created_at}`;
-                image.src = post.profile_image;
-
-                author_container.className = "author_container";
-                author_container.append(author, image, created_at);
-                
-                comment_container.className = "comment_container";
-                comment_container.append(body);
-
-                postDiv.append(author_container, comment_container);
+                const postDiv = createPostDiv(post);
                 document.querySelector('#posts').append(postDiv); 
             });
-
-            disable_buttons();
+            disablePaginatorButtons();
         });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        sendNewPost()
+        displayProfileElements ()
         loadPosts(currentPage);
-
+        console.log(display_posts)
         fetch("/posts/")
         .then(response => response.json())
         .then(data => {
@@ -105,10 +245,24 @@
 {% block body %}
     <nav aria-label="Page navigation example">
         <ul class="pagination">
-        <li id="prev-button"><a class="page-link" href="#">Previous</a></li>
-        <li id="next-button"><a class="page-link" href="#">Next</a></li>
+        <li id="prev-button"><a class="page-link">Previous</a></li>
+        <li id="next-button"><a class="page-link">Next</a></li>
         </ul>
     </nav>
-    <div id="posts">
+    {% csrf_token %}
+    <div id="input_container">
+        <div class="new-post">
+            <div class="author_container">
+                <img src="{{request.user.profile_picture.url}}" alt="">
+                <a href="{% url 'profile' username=request.user.username %}" style="text-align: center;">
+                    <strong>{{request.user.username}}</strong>
+                </a>
+            </div>
+            <textarea id="new-post-field" name="" class="textara_field"></textarea>
+        </div>
     </div>
+    <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+    <div style="display: none;" id="user-data" data-user="{{ request.user.id}}" data-profile-picture="{{ request.user.profile_picture.url }}">
+    </div>
+    <div id="posts"></div>
 {% endblock %}

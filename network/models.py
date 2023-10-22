@@ -4,7 +4,7 @@ from django.db import models
 class User(AbstractUser):
     followers = models.ManyToManyField('self', related_name='following', symmetrical=False)
     #you have to install pip install pillow first
-    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', default='profile_pictures/user.png')
     
     def __str__(self):
         return self.username
@@ -19,7 +19,7 @@ class PostModel(models.Model):
 
 class LikeModel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_likes')
-    post = models.ForeignKey(PostModel, on_delete=models.CASCADE)
+    post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name='post_likes')
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
