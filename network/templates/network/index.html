@@ -9,9 +9,20 @@
     let display_posts = "{{username}}";
 
     function displayProfileElements () {
+        const posts = document.querySelector("#posts");
+        const new_post = document.querySelector("#input_container");
         if (display_posts !== "all"){
-            const new_post = document.querySelector(".new-post");
             new_post.style.display = "none";
+            posts.style.margin = "0 200px 100px 50px";
+        }else{
+            const post_fontainee = document.querySelector('.main-body-container');
+            const followers_container = document.querySelector('#followers_container');
+            post_fontainee.style.display = "block";
+            followers_container.style.display = "none"
+            posts.style.width = "75%";
+            new_post.style.width = "75%";
+            posts.style.margin = "0 auto 10px auto";
+            new_post.style.margin = "0 auto 10px auto";
         }
     };
 
@@ -113,6 +124,34 @@
         });
     };
 
+    function setupPagination(totalPosts) {
+        let postsPerPage = 2;
+        totalPages = Math.ceil(totalPosts / postsPerPage);
+        const pagination = document.querySelector('.pagination');
+        
+        // Usuń obecne przyciski paginacji
+        pagination.innerHTML = `
+            <li id="prev-button"><a class="page-link">Previous</a></li>
+            <li id="next-button"><a class="page-link">Next</a></li>
+        `;
+
+        for (let i = 1; i <= totalPages; i++) {
+            const button = document.createElement('a');
+            const list_item = document.createElement('li');
+            button.className = "page-link";
+            button.innerHTML = i;
+            button.addEventListener('click', () => {
+                currentPage = i;
+                loadPosts(i);
+            });
+            list_item.className = "page-item";
+            list_item.append(button);
+            let childrens = pagination.children;
+            let before_last = childrens[childrens.length - 1];
+            pagination.insertBefore(list_item, before_last);
+        }
+    }
+
     function disablePaginatorButtons() {
         if (currentPage === 1) {
             document.querySelector('#prev-button').className = "page-item disabled";
@@ -160,10 +199,10 @@
 
         likes_image.src = `{% static 'network/heart.png' %}`;
         likes_image.id = "heart-image"
-        likes_image.addEventListener('click', () => likePost(post.id));
         likes.innerHTML = post.likes;
         likes.className = 'likes-number';
         likes_container.className = "likes-container"
+        likes_container.addEventListener('click', () => likePost(post.id));
         likes_container.append(likes_image, likes);
 
         if (post.author_username === "{{request.user.username}}") {
@@ -187,7 +226,8 @@
     function loadPosts(pageNumber) {
         fetch(`/posts/?username=${display_posts}&page=${pageNumber}`)
         .then(response => response.json())
-        .then(data => { 
+        .then(data => {
+            setupPagination(data.count); // <-- Dodaj tę linię
             document.querySelector('#posts').innerHTML = '';
             data.results.forEach(post => {
                 const postDiv = createPostDiv(post);
@@ -198,47 +238,26 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        sendNewPost()
-        displayProfileElements ()
-        loadPosts(currentPage);
-        console.log(display_posts)
-        fetch("/posts/")
-        .then(response => response.json())
-        .then(data => {
-            let totalPosts = data.count;
-            let postsPerPage = 2;
-            totalPages = Math.ceil(totalPosts / postsPerPage);
+    sendNewPost();
+    displayProfileElements();
+    loadPosts(currentPage);
+    console.log(display_posts);
 
-            for (let i = 1; i <= totalPages; i++) {
-                const button = document.createElement('a');
-                const list_item = document.createElement('li');
-                button.className = "page-link";
-                button.innerHTML = i;
-                button.addEventListener('click', () => {
-                    currentPage = i;
-                    loadPosts(i);
-                });
-                list_item.className = "page-item";
-                list_item.append(button);
-                let childrens = document.querySelector('.pagination').children;
-                let before_last = childrens[childrens.length - 1];
-                document.querySelector('.pagination').insertBefore(list_item, before_last);
-            }
-
-            document.querySelector('#prev-button').addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage -= 1;
-                    loadPosts(currentPage);
-                }
-            });
-            document.querySelector('#next-button').addEventListener('click', () => {
-                if (currentPage < totalPages) {
-                    currentPage += 1;
-                    loadPosts(currentPage);
-                }
-            });
-        });
+    document.querySelector('#prev-button').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage -= 1;
+            loadPosts(currentPage);
+        }
     });
+
+    document.querySelector('#next-button').addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage += 1;
+            loadPosts(currentPage);
+        }
+    });
+});
+
 </script>
 {% endblock script %}
 
@@ -249,18 +268,65 @@
         <li id="next-button"><a class="page-link">Next</a></li>
         </ul>
     </nav>
-    {% csrf_token %}
-    <div id="input_container">
-        <div class="new-post">
-            <div class="author_container">
-                <img src="{{request.user.profile_picture.url}}" alt="">
-                <a href="{% url 'profile' username=request.user.username %}" style="text-align: center;">
-                    <strong>{{request.user.username}}</strong>
-                </a>
+    <div class=main-body-container>
+        <div id="followers_container">
+            {% if username != request.user.username %}
+                <form method="POST" value="{{username}}" type="hidden">
+                    {% csrf_token %}
+                    <button type="submit" class="follow-btn">Follow</button>
+                </form>
+            {% endif %}
+            {% if followers %}
+            <p class="follow-title">Followers:</p>
+            <div class="follower-list-container">
+                <ul class="nav" role="tablist">
+                    {% for follower in followers %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'profile' username=follower.username %}">
+                                <div class="follower">
+                                    <img src="{{follower.profile_picture.url}}" alt="{{follower.username}}">
+                                    <strong>{{follower.username}}</strong>
+                                </div>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
-            <textarea id="new-post-field" name="" class="textara_field"></textarea>
+            {% else %}
+                <p class="follow-title">No followers yet.</p>
+            {% endif %}
+            {% if followings %}
+            <p class="follow-title">Following:</p>
+            <div class="following-list-container">
+                <ul class="nav" role="tablist">
+                    {% for followed_user in followings %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'profile' username=followed_user.username %}">
+                                <div class="following">
+                                    <img src="{{followed_user.profile_picture.url}}" alt="{{followed_user.username}}">
+                                    <strong>{{followed_user.username}}</strong>
+                                </div>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+                <p>No followins yet.</p>
+            {% endif %}
+        </div>
+        <div id="input_container">
+            <div class="new-post">
+                <div class="author_container">
+                    <img src="{{request.user.profile_picture.url}}" alt="">
+                    <a href="{% url 'profile' username=request.user.username %}" style="text-align: center;">
+                        <strong>{{request.user.username}}</strong>
+                    </a>
+                </div>
+                <textarea id="new-post-field" name="" class="textara_field"></textarea>
         </div>
     </div>
+    {% csrf_token %}
     <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
     <div style="display: none;" id="user-data" data-user="{{ request.user.id}}" data-profile-picture="{{ request.user.profile_picture.url }}">
     </div>

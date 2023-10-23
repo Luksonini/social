@@ -2,12 +2,12 @@
 .post, .new-post {
     position: relative;
     display: flex;
-    width: 75%;
+    /* width: 75%; */
     align-items: center;
     border: 1px solid #e0e0e0;
     border-radius: 5px;
     padding: 15px;
-    margin: 15px auto 0 auto;
+    margin: 0 auto 15px auto;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     background-color: #fff;
     transition: 0.3s;
@@ -42,6 +42,7 @@
 
 .likes-container:hover {
     transform: scale(0.9); /* pomniejszenie o 10% podczas najechania */
+    cursor: pointer
 }
 
 #heart-image {
@@ -111,30 +112,75 @@
     outline: none;
 }
 
-.edit_btn {
+.edit_btn{
     position: absolute;
-    bottom: 10px;
+    bottom: 0;
     right: 10px;
+}
+
+.edit_btn, .follow-btn {
     background-color: #007BFF;
     color: #FFF;
     border: none;
     border-radius: 5px;
-    padding: 10px 20px;
+    padding: 5px 10px;
     font-size: 16px;
     cursor: pointer;
     transition: 0.3s;
+    margin-bottom: 10px;
 }
 
-.edit_btn:hover {
+.edit_btn:hover, .follow-btn:hover {
     background-color: #0056b3;  /* Kolor tła przy najechaniu */
     color: #FFF;                /* Kolor tekstu przy najechaniu (bez zmian) */
 }
 
-.edit_btn:active {
+.edit_btn:active, .follow-btn:active {
     transform: scale(0.98);     /* Lekkie "wciśnięcie" przycisku podczas klikania */
 }
 
-.edit_btn:focus {
+.edit_btn:focus, .follow-btn:focus {
     outline: none;              /* Usunięcie domyślnej ramki podczas fokusowania */
     box-shadow: 0 0 5px #007BFF; /* Dodanie cienia wokół przycisku podczas fokusowania */
 }
+
+/* pforile elements */
+
+.main-body-container{
+    display: flex;
+}
+
+#posts{
+    flex: 1;
+
+}
+
+/* followers */
+.follow-title{
+    margin-bottom: 0;
+}
+
+.follower img, .following img {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+}
+
+#followers_container{
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin: 0 10px 0 50px;
+    font-weight: 500;
+}
+
+.follower-list-container, .following-list-container {
+    max-height: 150px;
+    max-width: 200px;
+    overflow-y: auto;
+    margin-bottom: 30px;
+}
+
+
+

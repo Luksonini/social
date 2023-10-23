@@ -13,6 +13,7 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from . models import User, LikeModel
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
 
 @login_required(login_url='login')
 def index(request, username="all"):
@@ -20,19 +21,36 @@ def index(request, username="all"):
 
 @login_required(login_url='login')
 def profile(request, username):
-    return render(request, "network/index.html", {"username": username})
 
+    if username != 'all':
+        print("Profile function is called")
+        user = get_object_or_404(User, username=username)
+        followers = user.followers.all()
+        followings = user.following.all()
+    return render(request, "network/index.html", {"username": username, "followers" : followers, "followings" : followings})
+
+from django.utils.html import urlize
+
+def custom_urlize(value):
+    value = urlize(value)
+    # Dodanie atrybutu target="_blank" do wszystkich odnośników
+    return value.replace('<a ', '<a target="_blank" ')
+
+class UrlizedCharField(serializers.CharField):
+
+    def to_representation(self, value):
+        return custom_urlize(value)
 
 class PostModelSerializer(serializers.ModelSerializer):
     author_username = serializers.CharField(source='author.username', read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", required=False, read_only=True) 
     profile_image = serializers.ImageField(source='author.profile_picture', read_only=True)
     likes = serializers.IntegerField(source='post_likes.count', read_only=True)
+    body = UrlizedCharField()
 
     class Meta:
         model = PostModel
         fields = ('id', 'author', 'author_username', 'body', 'created_at', 'profile_image', 'likes')
-
 
 
 @api_view(['GET', 'POST'])
@@ -86,13 +104,12 @@ def like_post(request, post_id):
     
     # Sprawdzenie, czy użytkownik już polubił post.
     if LikeModel.objects.filter(user=request.user, post=post).exists():
-        return Response({'status': 'already liked'})
-    
+        LikeModel.objects.filter(user=request.user, post=post).delete()
+        return Response({'status': 'unliked'})  # Zwrócenie odpowiedzi, że polubienie zostało usunięte.
+
     # Dodanie polubienia.
     LikeModel.objects.create(user=request.user, post=post)
-    
-    # Zwracanie odpowiedzi HTTP.
-    return Response({'status': 'liked'})
+    return Response({'status': 'liked'})  # Zwrócenie odpowiedzi, że post został polubiony.
 
 
 def login_view(request):

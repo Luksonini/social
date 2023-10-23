@@ -2,8 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class User(AbstractUser):
-    followers = models.ManyToManyField('self', related_name='following', symmetrical=False)
-    #you have to install pip install pillow first
+    followers = models.ManyToManyField('self', related_name='followed_by', blank=True, symmetrical=False)
+    following = models.ManyToManyField('self', related_name='follows', blank=True, symmetrical=False)
     profile_picture = models.ImageField(upload_to='profile_pictures/', default='profile_pictures/user.png')
     
     def __str__(self):
