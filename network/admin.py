@@ -10,6 +10,7 @@ class CustomUserAdmin(admin.ModelAdmin):
 
 class PostModelAdmin(admin.ModelAdmin):
     list_display = ('author', 'body', 'created_at')  
+    filter_horizontal = ('comments', )
 
 class LikeModelAdmin(admin.ModelAdmin):
     list_display = ('created_at', 'post', 'user',)

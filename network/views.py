@@ -11,9 +11,11 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
-from . models import User, LikeModel
+from . models import User, LikeModel, CommentModel
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
+
 
 @login_required(login_url='login')
 def index(request, username="all"):
@@ -21,13 +23,38 @@ def index(request, username="all"):
 
 @login_required(login_url='login')
 def profile(request, username):
-
     if username != 'all':
-        print("Profile function is called")
         user = get_object_or_404(User, username=username)
         followers = user.followers.all()
         followings = user.following.all()
-    return render(request, "network/index.html", {"username": username, "followers" : followers, "followings" : followings})
+        is_follower_value = is_following(request.user, followers)
+
+        if request.method == "POST":
+            user_to_follow_username = request.POST.get("follow")
+            current_user = request.user
+            user_to_follow = User.objects.get(username=user_to_follow_username)
+
+            # Sprawdzanie ponowne, ponieważ wartość mogła się zmienić
+            is_follower_value = is_following(request.user, user_to_follow.followers.all())
+
+            if not is_follower_value:
+                current_user.following.add(user_to_follow)
+                user_to_follow.followers.add(current_user)
+                # is_follower_value = True
+            else:
+                current_user.following.remove(user_to_follow)
+                user_to_follow.followers.remove(current_user)
+                # is_follower_value = False
+
+            # Aktualizacja wartości is_follower_value po dokonaniu zmian
+            # is_follower_value = is_following(request.user, user.followers.all())
+            return redirect('profile', username=username)
+
+    return render(request, "network/index.html", {"username": username, "followers": followers, "followings": followings, 'is_follower': is_follower_value})
+
+def is_following(current_user, followers):
+    return current_user in followers
+
 
 from django.utils.html import urlize
 
@@ -52,7 +79,6 @@ class PostModelSerializer(serializers.ModelSerializer):
         model = PostModel
         fields = ('id', 'author', 'author_username', 'body', 'created_at', 'profile_image', 'likes')
 
-
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def post_list(request):
@@ -60,10 +86,15 @@ def post_list(request):
         # obsługa żądania GET (pobieranie postów i paginacja)
         if 'username' in request.query_params:
             username = request.query_params['username']
-            if username != 'all':
-                posts = PostModel.objects.filter(author__username=username)
-            else:
+            if username == 'all':
                 posts = PostModel.objects.all().order_by('-created_at')
+            elif username == 'following':
+                following = request.user.following.all()
+                posts = PostModel.objects.filter(author__in=following).order_by('-created_at')
+                print(posts)
+            else:
+                user = get_object_or_404(User, username=username)
+                posts = PostModel.objects.filter(author=user).order_by('-created_at')
         else:
             posts = PostModel.objects.all().order_by('-created_at')
 
@@ -81,7 +112,6 @@ def post_list(request):
             serializer.save(author=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['PUT'])
 def post_update(request, id):
@@ -110,6 +140,25 @@ def like_post(request, post_id):
     # Dodanie polubienia.
     LikeModel.objects.create(user=request.user, post=post)
     return Response({'status': 'liked'})  # Zwrócenie odpowiedzi, że post został polubiony.
+
+
+class CommentModelSerializer(serializers.ModelSerializer):
+    author_username = serializers.CharField(source='author.username', read_only=True)
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", required=False, read_only=True)
+
+    class Meta:
+        model = CommentModel
+        fields = ('id', 'post', 'author', 'author_username', 'content', 'created_at')
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_comment_to_post(request, post_id):
+    post = get_object_or_404(PostModel, id=post_id)
+    serializer = CommentModelSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(user=request.user, post=post)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 def login_view(request):
