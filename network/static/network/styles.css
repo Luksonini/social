@@ -184,5 +184,30 @@
     margin-bottom: 30px;
 }
 
+/* comments */
 
+.comment-div {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px; /* odstępy między komentarzami */
+}
 
+.users-comment, .others-comment {
+    max-width: 60%; /* szerokość komentarza */
+    padding: 10px; /* wewnętrzne marginesy */
+    border-radius: 15px; /* zaokrąglenie rożków */
+    font-size: 14px; /* wielkość czcionki */
+    line-height: 1.5; /* odstępy między liniami tekstu */
+    position: relative; /* potrzebne dla dalszego pozycjonowania */
+}
+
+.users-comment {
+    align-self: flex-end; /* wyrównanie komentarzy użytkownika do prawej strony */
+    background-color: #E9E9E9; /* kolor tła komentarza użytkownika */
+}
+
+.others-comment {
+    align-self: flex-start; /* wyrównanie komentarzy innych osób do lewej strony */
+    background-color: #D1E9FB; /* kolor tła komentarza innych osób */
+}

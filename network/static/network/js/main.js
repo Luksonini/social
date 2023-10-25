@@ -1,3 +1,181 @@
+function fetchComments(postId, commentDiv, userId) {
+    fetch(`/posts/${postId}/comments/`, {
+        method: "GET",
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.getElementById("csrfToken").value 
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        data.forEach(comment => {
+            const commentElement = document.createElement('div');
+            commentElement.innerHTML = `<strong>${comment.author_username}</strong>: ${comment.text}`;
+            if (comment.user_id == userId) {
+                commentElement.className = 'users-comment'
+            } else {
+                commentElement.className = 'others-comment'
+            }
+            commentDiv.appendChild(commentElement);
+        });
+    });
+}
+
+function addComment(postId, inputComment, commentDiv, userId) {
+    fetch(`/posts/${postId}/comments/`, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.getElementById("csrfToken").value 
+        },
+        body: JSON.stringify({
+            "text": inputComment.value,
+            "user": userId,
+            "post" : postId
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            response.text().then(text => {
+                console.log('Server response:', text);
+            });
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data);
+        const newCommentElement = document.createElement('div');
+        newCommentElement.innerHTML = `<strong>${data.author_username}</strong>: ${data.text}`;
+        commentDiv.appendChild(newCommentElement);
+        inputComment.value = '';
+    })
+    .catch(error => {
+        console.log('Error:', error);
+    });
+}
+
+function handlePostComments() {
+    document.querySelectorAll('.post').forEach(element => {
+        element.addEventListener('click', (event) => {
+            let existingCommentDiv = event.currentTarget.nextElementSibling;
+            if (existingCommentDiv && existingCommentDiv.classList.contains('comment-div')) {
+                existingCommentDiv.style.display = existingCommentDiv.style.display === 'none' ? 'block' : 'none';
+                return;
+            }
+            
+            const commentDiv = document.createElement('div');
+            commentDiv.classList.add('comment-div');
+            const inputComment = document.createElement('textarea');
+            const postId = event.currentTarget.dataset.postId;
+            const userId = document.getElementById('user-data').getAttribute('data-user');
+
+            fetchComments(postId, commentDiv, userId);
+
+            inputComment.addEventListener('keydown', (event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    addComment(postId, inputComment, commentDiv, userId);
+                }
+            });
+
+            commentDiv.appendChild(inputComment);
+            event.currentTarget.insertAdjacentElement('afterend', commentDiv);
+        });
+    });
+}
+
+
+// function handlePostComments() {
+//     document.querySelectorAll('.post').forEach(element => {
+//         element.addEventListener('click', (event) => {
+            
+//             // Sprawdź, czy istnieje już commentDiv dla tego posta
+//             let existingCommentDiv = event.currentTarget.nextElementSibling;
+//             if (existingCommentDiv && existingCommentDiv.classList.contains('comment-div')) {
+//                 if (existingCommentDiv.style.display === 'none') {
+//                     // Jeśli jest ukryty, to pokaż
+//                     existingCommentDiv.style.display = 'block';
+//                 } else {
+//                     // Jeśli jest widoczny, to ukryj
+//                     existingCommentDiv.style.display = 'none';
+//                 }
+//                 return;
+//             }
+            
+//             // Jeśli nie, utwórz nowy commentDiv
+//             const commentDiv = document.createElement('div');
+//             commentDiv.classList.add('comment-div');  // Dodaj klasę 'comment-div' do nowo utworzonego diva
+//             const inputComment = document.createElement('textarea');
+//             const id = event.currentTarget.dataset.postId;
+//             const userDataElement = document.getElementById('user-data');
+//             fetch(`/posts/${id}/comments/`, {
+//                 method: "GET",
+//                 headers: {
+//                     'Content-Type': 'application/json',
+//                     'X-CSRFToken': document.getElementById("csrfToken").value 
+//                 }
+//             })
+//             .then(response => response.json())
+//             .then(data => {
+//                 const userId = userDataElement.getAttribute('data-user'); 
+//                 data.forEach(comment => {
+//                     const commentElement = document.createElement('div');
+//                     commentElement.innerHTML = `<strong>${comment.author_username}</strong>: ${comment.text}`;
+//                     console.log(userId, comment.user_id)
+//                     if (comment.user_id == userId){
+//                         commentElement.className = 'users-comment'
+//                     }else{
+//                         commentElement.className = 'others-comment'
+//                     }
+//                     commentDiv.appendChild(commentElement);
+//                 });
+//             });
+
+//             inputComment.addEventListener('keydown', (event) => {
+//                 if (event.key === "Enter"){
+//                     fetch(`/posts/${id}/comments/`, {
+//                         method: "POST",
+//                         headers: {
+//                             'Content-Type': 'application/json',
+//                             'X-CSRFToken': document.getElementById("csrfToken").value 
+//                         },
+//                         body: JSON.stringify({
+//                             "text": inputComment.value,
+//                         })
+//                     })
+//                     .then(response => {
+//                         if (!response.ok) {
+//                             throw new Error(`HTTP error! status: ${response.status}`);
+//                         }
+//                         return response.json();
+//                     })
+//                     .then(data => {
+//                         console.log('Success:', data);
+//                         const newCommentElement = document.createElement('div');
+//                         newCommentElement.innerHTML = `<strong>${data.author_username}</strong>: ${data.text}`;
+//                         commentDiv.appendChild(newCommentElement);
+//                         inputComment.value = '';
+//                     })
+//                     .catch(error => {
+//                         console.log('Error:', error);
+//                         if (error.response) {
+//                             error.response.text().then(text => {
+//                                 console.log('Server response:', text);
+//                             });
+//                         }
+//                     });
+//                 }
+//             });
+
+//             commentDiv.appendChild(inputComment);
+//             event.currentTarget.insertAdjacentElement('afterend', commentDiv);
+//         });
+//     });
+// }
+
+
+
 function displayProfileElements () {
     const posts = document.querySelector("#posts");
     const new_post = document.querySelector("#input_container");
@@ -193,6 +371,7 @@ function loadPosts(pageNumber) {
             const postDiv = createPostDiv(post);
             document.querySelector('#posts').append(postDiv); 
         });
+        handlePostComments();
         disablePaginatorButtons();
     });
 }

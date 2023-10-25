@@ -22,8 +22,7 @@ class PostModel(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_posts')
     body = models.TextField(max_length=1000)
     created_at = models.DateTimeField(auto_now=True)
-    comments = models.ManyToManyField(CommentModel, related_name='comments_on_post', blank=True)
-  
+
     def __str__(self):
         return f"Post by {self.author}: {self.body[:50]}"  # Zwraca pierwsze 50 znaków treści posta.
 

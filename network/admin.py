@@ -10,13 +10,14 @@ class CustomUserAdmin(admin.ModelAdmin):
 
 class PostModelAdmin(admin.ModelAdmin):
     list_display = ('author', 'body', 'created_at')  
-    filter_horizontal = ('comments', )
-
+    
 class LikeModelAdmin(admin.ModelAdmin):
     list_display = ('created_at', 'post', 'user',)
 
 class CommentModelAdmin(admin.ModelAdmin):
-    list_display = ('user', 'post', 'text', 'created_at')  
+    list_display = ('user', 'post', 'text', 'created_at') 
+  
+ 
 
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(PostModel, PostModelAdmin)

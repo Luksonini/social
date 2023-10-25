@@ -142,25 +142,34 @@ def like_post(request, post_id):
     return Response({'status': 'liked'})  # Zwrócenie odpowiedzi, że post został polubiony.
 
 
-class CommentModelSerializer(serializers.ModelSerializer):
-    author_username = serializers.CharField(source='author.username', read_only=True)
-    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", required=False, read_only=True)
+from rest_framework import serializers
+from .models import CommentModel, User
 
+
+
+class CommentModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentModel
-        fields = ('id', 'post', 'author', 'author_username', 'content', 'created_at')
+        fields = ['id', 'user', 'post', 'text', 'created_at']
 
-@api_view(['POST'])
+
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def add_comment_to_post(request, post_id):
     post = get_object_or_404(PostModel, id=post_id)
-    serializer = CommentModelSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(user=request.user, post=post)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
+    if request.method == 'GET':
+        comments = CommentModel.objects.filter(post=post)
+        serializer = CommentModelSerializer(comments, many=True)
+        return Response(serializer.data)
+    
+    elif request.method == 'POST':
+        serializer = CommentModelSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, post=post)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 def login_view(request):
     if request.method == "POST":
 
