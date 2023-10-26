@@ -262,38 +262,6 @@
 
 /* comments */
 
-/* @keyframes hide {
-    0% {
-        opacity: 1;
-        height: 100%;
-        line-height: 100%;
-        padding: 20px;
-        margin-bottom: 10px;
-    }
-    100% {
-        opacity: 0;
-        height: 0px;
-        line-height: 0px;
-        padding: 0px;
-        margin-bottom: 0px;
-    }
-}
-
-@keyframes show {
-    0% {
-        opacity: 0;
-        height: 0px;
-        line-height: 0px;
-        padding: 0px;
-        margin-bottom: 0px;
-    }
-    100% {
-        opacity: 1;
-        height: 100%;
-        line-height: 100%;
-        margin-bottom: 10px;
-    }
-} */
 
 @keyframes hide {
     0% {
@@ -334,7 +302,7 @@
     padding: 0;
     margin-bottom: 0;
     overflow: hidden;
-    transform-origin: top; // To sprawia, że animacja "zwijania" zaczyna się od górnej krawędzi
+    transform-origin: top; 
 }
 
 .comment-div.hide-animation,
