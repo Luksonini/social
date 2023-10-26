@@ -10,18 +10,33 @@ function fetchComments(postId, commentDiv, userId) {
     .then(data => {
         data.forEach(comment => {
             const commentElement = document.createElement('div');
-            commentElement.innerHTML = `<strong>${comment.author_username}</strong>: ${comment.text}`;
-            if (comment.user_id == userId) {
+            
+            if (comment.user == userId) {
                 commentElement.className = 'users-comment'
+                commentElement.innerHTML = `<strong>${comment.author_username}</strong>: ${comment.text}`;
             } else {
-                commentElement.className = 'others-comment'
+                commentElement.className = 'others-comment-wrapper';
+                
+                // Tworzenie elementu dla obrazka avatar
+                const avatarImg = document.createElement('img');
+                avatarImg.src = comment.profile_image;
+                avatarImg.className = 'others-avatar';
+                commentElement.appendChild(avatarImg);
+                
+                // Tworzenie elementu dla tekstu komentarza
+                const textDiv = document.createElement('div');
+                textDiv.className = 'others-comment';
+                textDiv.innerHTML = `<strong>${comment.author_username}</strong>: ${comment.text}`;
+                commentElement.appendChild(textDiv);
             }
+            
             commentDiv.appendChild(commentElement);
         });
     });
 }
 
 function addComment(postId, inputComment, commentDiv, userId) {
+    console.log(typeof userId, userId);
     fetch(`/posts/${postId}/comments/`, {
         method: "POST",
         headers: {
@@ -46,6 +61,11 @@ function addComment(postId, inputComment, commentDiv, userId) {
     .then(data => {
         console.log('Success:', data);
         const newCommentElement = document.createElement('div');
+        if (data.user == userId) {
+            newCommentElement.className = 'users-comment';
+        } else {
+            newCommentElement.className = 'others-comment-wrapper';
+        }
         newCommentElement.innerHTML = `<strong>${data.author_username}</strong>: ${data.text}`;
         commentDiv.appendChild(newCommentElement);
         inputComment.value = '';
@@ -59,13 +79,26 @@ function handlePostComments() {
     document.querySelectorAll('.post').forEach(element => {
         element.addEventListener('click', (event) => {
             let existingCommentDiv = event.currentTarget.nextElementSibling;
+
             if (existingCommentDiv && existingCommentDiv.classList.contains('comment-div')) {
-                existingCommentDiv.style.display = existingCommentDiv.style.display === 'none' ? 'block' : 'none';
+                // Sprawdzenie, czy comment-div jest otwarty
+                if (existingCommentDiv.classList.contains('show-animation') || !existingCommentDiv.classList.contains('hide-animation')) {
+                    existingCommentDiv.classList.remove('show-animation');
+                    existingCommentDiv.classList.add('hide-animation');
+                    existingCommentDiv.addEventListener('animationend', () => {
+                        if (existingCommentDiv.classList.contains('hide-animation')) {
+                            existingCommentDiv.remove();
+                        }
+                    });
+                } else {
+                    existingCommentDiv.classList.add('show-animation');
+                    existingCommentDiv.classList.remove('hide-animation');
+                }
                 return;
             }
             
             const commentDiv = document.createElement('div');
-            commentDiv.classList.add('comment-div');
+            commentDiv.classList.add('comment-div', 'show-animation');  // Dodajemy klasę animacji od razu
             const inputComment = document.createElement('textarea');
             const postId = event.currentTarget.dataset.postId;
             const userId = document.getElementById('user-data').getAttribute('data-user');
@@ -79,101 +112,11 @@ function handlePostComments() {
                 }
             });
 
-            commentDiv.appendChild(inputComment);
             event.currentTarget.insertAdjacentElement('afterend', commentDiv);
+            commentDiv.appendChild(inputComment);
         });
     });
 }
-
-
-// function handlePostComments() {
-//     document.querySelectorAll('.post').forEach(element => {
-//         element.addEventListener('click', (event) => {
-            
-//             // Sprawdź, czy istnieje już commentDiv dla tego posta
-//             let existingCommentDiv = event.currentTarget.nextElementSibling;
-//             if (existingCommentDiv && existingCommentDiv.classList.contains('comment-div')) {
-//                 if (existingCommentDiv.style.display === 'none') {
-//                     // Jeśli jest ukryty, to pokaż
-//                     existingCommentDiv.style.display = 'block';
-//                 } else {
-//                     // Jeśli jest widoczny, to ukryj
-//                     existingCommentDiv.style.display = 'none';
-//                 }
-//                 return;
-//             }
-            
-//             // Jeśli nie, utwórz nowy commentDiv
-//             const commentDiv = document.createElement('div');
-//             commentDiv.classList.add('comment-div');  // Dodaj klasę 'comment-div' do nowo utworzonego diva
-//             const inputComment = document.createElement('textarea');
-//             const id = event.currentTarget.dataset.postId;
-//             const userDataElement = document.getElementById('user-data');
-//             fetch(`/posts/${id}/comments/`, {
-//                 method: "GET",
-//                 headers: {
-//                     'Content-Type': 'application/json',
-//                     'X-CSRFToken': document.getElementById("csrfToken").value 
-//                 }
-//             })
-//             .then(response => response.json())
-//             .then(data => {
-//                 const userId = userDataElement.getAttribute('data-user'); 
-//                 data.forEach(comment => {
-//                     const commentElement = document.createElement('div');
-//                     commentElement.innerHTML = `<strong>${comment.author_username}</strong>: ${comment.text}`;
-//                     console.log(userId, comment.user_id)
-//                     if (comment.user_id == userId){
-//                         commentElement.className = 'users-comment'
-//                     }else{
-//                         commentElement.className = 'others-comment'
-//                     }
-//                     commentDiv.appendChild(commentElement);
-//                 });
-//             });
-
-//             inputComment.addEventListener('keydown', (event) => {
-//                 if (event.key === "Enter"){
-//                     fetch(`/posts/${id}/comments/`, {
-//                         method: "POST",
-//                         headers: {
-//                             'Content-Type': 'application/json',
-//                             'X-CSRFToken': document.getElementById("csrfToken").value 
-//                         },
-//                         body: JSON.stringify({
-//                             "text": inputComment.value,
-//                         })
-//                     })
-//                     .then(response => {
-//                         if (!response.ok) {
-//                             throw new Error(`HTTP error! status: ${response.status}`);
-//                         }
-//                         return response.json();
-//                     })
-//                     .then(data => {
-//                         console.log('Success:', data);
-//                         const newCommentElement = document.createElement('div');
-//                         newCommentElement.innerHTML = `<strong>${data.author_username}</strong>: ${data.text}`;
-//                         commentDiv.appendChild(newCommentElement);
-//                         inputComment.value = '';
-//                     })
-//                     .catch(error => {
-//                         console.log('Error:', error);
-//                         if (error.response) {
-//                             error.response.text().then(text => {
-//                                 console.log('Server response:', text);
-//                             });
-//                         }
-//                     });
-//                 }
-//             });
-
-//             commentDiv.appendChild(inputComment);
-//             event.currentTarget.insertAdjacentElement('afterend', commentDiv);
-//         });
-//     });
-// }
-
 
 
 function displayProfileElements () {
@@ -316,7 +259,7 @@ function changePostListener(element, input_body, post) {
     };
 
 function setupPagination(totalPosts) {
-    let postsPerPage = 2;
+    let postsPerPage = 4;
     totalPages = Math.ceil(totalPosts / postsPerPage);
     const pagination = document.querySelector('.pagination');
     
@@ -341,6 +284,21 @@ function setupPagination(totalPosts) {
         let before_last = childrens[childrens.length - 1];
         pagination.insertBefore(list_item, before_last);
     }
+    document.querySelector('#prev-button').addEventListener('click', () => {
+        console.log("Prev clicked. Current page:", currentPage);
+        if (currentPage > 1) {
+            currentPage -= 1;
+            loadPosts(currentPage);
+        }
+    });
+    
+    document.querySelector('#next-button').addEventListener('click', () => {
+        console.log("Next clicked. Current page:", currentPage);
+        if (currentPage < totalPages) {
+            currentPage += 1;
+            loadPosts(currentPage);
+        }
+    });
 }
 
 function disablePaginatorButtons() {
@@ -349,9 +307,6 @@ function disablePaginatorButtons() {
     } else {
         document.querySelector('#prev-button').className = "page-item";
     }
-    console.log("disablePaginatorButtons called");
-    console.log("Current Page:", currentPage);
-    console.log("Total Pages:", totalPages);
     
     if (currentPage === totalPages) {
         document.querySelector('#next-button').className = "page-item disabled";
@@ -409,7 +364,10 @@ function createPostDiv(post) {
     likes.innerHTML = post.likes;
     likes.className = 'likes-number';
     likes_container.className = "likes-container"
-    likes_container.addEventListener('click', () => likePost(post.id));
+    likes_container.addEventListener('click', (event) => {
+        event.stopPropagation();  // Zapobiega propagacji zdarzenia
+        likePost(post.id);
+    });
     likes_container.append(likes_image, likes);
 
     if (post.author_username === "{{request.user.username}}") {
@@ -439,19 +397,20 @@ document.addEventListener('DOMContentLoaded', () => {
     sendNewPost();
     displayProfileElements();
     loadPosts(currentPage);
-    console.log(display_posts);
 
-    document.querySelector('#prev-button').addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage -= 1;
-            loadPosts(currentPage);
-        }
-    });
-
-    document.querySelector('#next-button').addEventListener('click', () => {
-        if (currentPage < totalPages) {
-            currentPage += 1;
-            loadPosts(currentPage);
-        }
-    });
+    // document.querySelector('#prev-button').addEventListener('click', () => {
+    //     console.log("Prev clicked. Current page:", currentPage);
+    //     if (currentPage > 1) {
+    //         currentPage -= 1;
+    //         loadPosts(currentPage);
+    //     }
+    // });
+    
+    // document.querySelector('#next-button').addEventListener('click', () => {
+    //     console.log("Next clicked. Current page:", currentPage);
+    //     if (currentPage < totalPages) {
+    //         currentPage += 1;
+    //         loadPosts(currentPage);
+    //     }
+    // });
 });

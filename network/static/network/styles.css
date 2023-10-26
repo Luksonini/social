@@ -1,3 +1,10 @@
+
+/* paginator */
+
+.page-item:hover{
+    cursor: pointer;
+}
+
 /* Stylizacja ogólna dla postów */
 .post, .new-post {
     position: relative;
@@ -145,6 +152,75 @@
     box-shadow: 0 0 5px #007BFF; /* Dodanie cienia wokół przycisku podczas fokusowania */
 }
 
+/* changing avatar picture */
+.avatarform{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Ukrycie oryginalnego inputa */
+#avatar {
+    display: none;
+}
+
+/* Stylizacja etykiety, która będzie działać jako guzik */
+.label-file {
+    width: 112px;
+    background-color: #007BFF;
+    color: #FFF;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.label-file:hover {
+    background-color: #0056b3;
+    color: #FFF;
+}
+
+.label-file:active {
+    transform: scale(0.98);
+}
+
+.label-file:focus {
+    outline: none;
+    box-shadow: 0 0 5px #007BFF;
+}
+
+.avatar_btn {
+    position: relative;
+    background-color: #007BFF;
+    width: 130px;             /* Zmieniony rozmiar, żeby tekst "Zaktualizuj Avatar" się mieścił */
+    color: #FFF;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-bottom: 10px;
+}
+
+.avatar_btn:hover {
+    background-color: #0056b3;
+    color: #FFF;
+}
+
+.avatar_btn:active {
+    transform: scale(0.98);
+}
+
+.avatar_btn:focus {
+    outline: none;
+    box-shadow: 0 0 5px #007BFF;
+}
+
 /* pforile elements */
 
 .main-body-container{
@@ -186,28 +262,133 @@
 
 /* comments */
 
+/* @keyframes hide {
+    0% {
+        opacity: 1;
+        height: 100%;
+        line-height: 100%;
+        padding: 20px;
+        margin-bottom: 10px;
+    }
+    100% {
+        opacity: 0;
+        height: 0px;
+        line-height: 0px;
+        padding: 0px;
+        margin-bottom: 0px;
+    }
+}
+
+@keyframes show {
+    0% {
+        opacity: 0;
+        height: 0px;
+        line-height: 0px;
+        padding: 0px;
+        margin-bottom: 0px;
+    }
+    100% {
+        opacity: 1;
+        height: 100%;
+        line-height: 100%;
+        margin-bottom: 10px;
+    }
+} */
+
+@keyframes hide {
+    0% {
+        opacity: 1;
+        transform: scaleY(1);
+        margin-bottom: 10px;
+    }
+    100% {
+        opacity: 0;
+        transform: scaleY(0);
+        margin-bottom: 0px;
+    }
+}
+
+@keyframes show {
+    0% {
+        opacity: 0;
+        transform: scaleY(0);
+        margin-bottom: 0px;
+    }
+    100% {
+        opacity: 1;
+        transform: scaleY(1);
+        margin-bottom: 10px;
+    }
+}
+
 .comment-div {
     display: flex;
+    margin-left: auto;
+    margin-right: auto;
     flex-direction: column;
-    width: 100%;
-    gap: 10px; /* odstępy między komentarzami */
+    width: 50%;
+    gap: 8px;
+    opacity: 1;
+    /* height: 100%; */
+    line-height: 100%;
+    padding: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    transform-origin: top; // To sprawia, że animacja "zwijania" zaczyna się od górnej krawędzi
+}
+
+.comment-div.hide-animation,
+.comment-div.hide-animation > * {
+    animation: hide 0.5s forwards;
+}
+
+.comment-div.show-animation,
+.comment-div.show-animation > * {
+    animation: show 0.5s forwards;
 }
 
 .users-comment, .others-comment {
-    max-width: 60%; /* szerokość komentarza */
-    padding: 10px; /* wewnętrzne marginesy */
-    border-radius: 15px; /* zaokrąglenie rożków */
-    font-size: 14px; /* wielkość czcionki */
-    line-height: 1.5; /* odstępy między liniami tekstu */
-    position: relative; /* potrzebne dla dalszego pozycjonowania */
+    padding: 8px 12px; 
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.6; 
+    position: relative; 
 }
 
 .users-comment {
-    align-self: flex-end; /* wyrównanie komentarzy użytkownika do prawej strony */
-    background-color: #E9E9E9; /* kolor tła komentarza użytkownika */
+    align-self: flex-end;
+    background-color: #E9E9E9; 
+    border-radius: 18px 0 18px 18px; 
+}
+
+.others-comment-wrapper {
+    align-self: flex-start;
+    display: flex;
+    align-items: center; 
+}
+
+.others-comment-wrapper img.others-avatar {
+    border-radius: 50%; 
+    width: 36px; 
+    height: 36px; 
+    object-fit: cover; 
+    flex-shrink: 0;
+    margin-right: 8px;  
 }
 
 .others-comment {
-    align-self: flex-start; /* wyrównanie komentarzy innych osób do lewej strony */
-    background-color: #D1E9FB; /* kolor tła komentarza innych osób */
+    background-color: #D1E9FB;
+    padding: 8px 12px; 
+    border-radius: 0 18px 18px 18px; 
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+}
+
+.others-comment img {
+    border-radius: 50%; 
+    width: 36px; 
+    height: 36px; 
+    object-fit: cover; 
+    flex-shrink: 0;
 }

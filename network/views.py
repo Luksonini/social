@@ -30,25 +30,31 @@ def profile(request, username):
         is_follower_value = is_following(request.user, followers)
 
         if request.method == "POST":
+             # Sprawdzenie, czy użytkownik chce aktualizować swoje zdjęcie
+            if 'avatar' in request.FILES:
+                user.profile_picture = request.FILES['avatar']
+                user.save()
+                return redirect('profile', username=username)
             user_to_follow_username = request.POST.get("follow")
-            current_user = request.user
-            user_to_follow = User.objects.get(username=user_to_follow_username)
+            if user_to_follow_username:
+                current_user = request.user
+                user_to_follow = User.objects.get(username=user_to_follow_username)
 
-            # Sprawdzanie ponowne, ponieważ wartość mogła się zmienić
-            is_follower_value = is_following(request.user, user_to_follow.followers.all())
+                # Sprawdzanie ponowne, ponieważ wartość mogła się zmienić
+                is_follower_value = is_following(request.user, user_to_follow.followers.all())
 
-            if not is_follower_value:
-                current_user.following.add(user_to_follow)
-                user_to_follow.followers.add(current_user)
-                # is_follower_value = True
-            else:
-                current_user.following.remove(user_to_follow)
-                user_to_follow.followers.remove(current_user)
-                # is_follower_value = False
+                if not is_follower_value:
+                    current_user.following.add(user_to_follow)
+                    user_to_follow.followers.add(current_user)
+                    # is_follower_value = True
+                else:
+                    current_user.following.remove(user_to_follow)
+                    user_to_follow.followers.remove(current_user)
+                    # is_follower_value = False
 
-            # Aktualizacja wartości is_follower_value po dokonaniu zmian
-            # is_follower_value = is_following(request.user, user.followers.all())
-            return redirect('profile', username=username)
+                # Aktualizacja wartości is_follower_value po dokonaniu zmian
+                # is_follower_value = is_following(request.user, user.followers.all())
+                return redirect('profile', username=username)
 
     return render(request, "network/index.html", {"username": username, "followers": followers, "followings": followings, 'is_follower': is_follower_value})
 
@@ -99,7 +105,7 @@ def post_list(request):
             posts = PostModel.objects.all().order_by('-created_at')
 
         paginator = PageNumberPagination()
-        paginator.page_size = 2  # Ustaw liczbę postów na stronę
+        paginator.page_size = 4  # Ustaw liczbę postów na stronę
         result_page = paginator.paginate_queryset(posts, request)
 
         serializer = PostModelSerializer(result_page, many=True)
@@ -148,9 +154,11 @@ from .models import CommentModel, User
 
 
 class CommentModelSerializer(serializers.ModelSerializer):
+    author_username = serializers.CharField(source='user.username', read_only=True)
+    profile_image = serializers.ImageField(source='user.profile_picture', read_only=True)
     class Meta:
         model = CommentModel
-        fields = ['id', 'user', 'post', 'text', 'created_at']
+        fields = ['id', 'user', 'post', 'text', 'created_at', 'author_username', 'profile_image']
 
 
 @api_view(['GET', 'POST'])

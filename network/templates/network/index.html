@@ -11,6 +11,7 @@
     let heartImageUrl = `{% static 'network/heart.png' %}`
 
 </script>
+
 {% endblock script %}
 
 {% block body %}
@@ -68,6 +69,17 @@
             </div>
             {% else %}
                 <p>No followins yet.</p>
+            {% endif %}
+            {% if username != request.user.username %}
+            <hr>
+            <p>Change avatar</p>
+            <form class="avatarform" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" id="avatar" name="avatar" accept="image/*">
+                <label for="avatar" class="label-file">Wybierz plik</label>
+                <button type="submit" class="avatar_btn">Potwierdź</button>
+            </form>
+            <hr>
             {% endif %}
         </div>
         <div id="input_container">
