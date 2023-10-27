@@ -36,7 +36,6 @@ function fetchComments(postId, commentDiv, userId) {
 }
 
 function addComment(postId, inputComment, commentDiv, userId) {
-    console.log(typeof userId, userId);
     fetch(`/posts/${postId}/comments/`, {
         method: "POST",
         headers: {
@@ -78,6 +77,9 @@ function addComment(postId, inputComment, commentDiv, userId) {
 function handlePostComments() {
     document.querySelectorAll('.post').forEach(element => {
         element.addEventListener('click', (event) => {
+            if (event.target.tagName.toLowerCase() === 'textarea' || event.target.tagName.toLowerCase() === 'a') {
+                return;
+            }
             let existingCommentDiv = event.currentTarget.nextElementSibling;
 
             if (existingCommentDiv && existingCommentDiv.classList.contains('comment-div')) {
@@ -162,40 +164,51 @@ function handleFollowingClick(event) {
 }
 
 function sendNewPost() {
-    const input = document.querySelector('#new-post-field');  
+    const input = document.querySelector('#new-post-field');
+  
     input.addEventListener('keydown', function(event) {
         if (event.key === "Enter") {
-            const userDataElement = document.getElementById('user-data');
-            event.preventDefault();  
-            fetch('/posts/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.getElementById("csrfToken").value 
-                },
-                body: JSON.stringify({
-                    "body": input.value,
-                    "author" :  userDataElement.getAttribute('data-user')
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    console.error('Server response:', response.statusText);
-                    return response.text().then(text => {
-                        throw new Error(text);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Success:', data);
-                loadPosts(currentPage);
-                input.value = ''; 
-            })
-            .catch((error) => {
-                console.error('Error:', error);
+            event.preventDefault();
+            sendPost(input);
+        }
+    });
+
+    const button = document.getElementById('send-post-btn');
+    button.addEventListener('click', function() {
+        sendPost(input);
+    });
+}
+
+function sendPost(input) {
+    const userDataElement = document.getElementById('user-data');
+
+    fetch('/posts/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.getElementById("csrfToken").value 
+        },
+        body: JSON.stringify({
+            "body": input.value,
+            "author" :  userDataElement.getAttribute('data-user')
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            console.error('Server response:', response.statusText);
+            return response.text().then(text => {
+                throw new Error(text);
             });
         }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data);
+        loadPosts(currentPage);
+        input.value = ''; 
+    })
+    .catch((error) => {
+        console.error('Error:', error);
     });
 }
 
@@ -225,7 +238,8 @@ function likePost(postId) {
     });
 };
 
-function changePostListener(element, input_body, post) {
+function changePostListener(element, input_body, post, event) {
+    event.stopPropagation()
     element.style.display = "none";
     input_body.style.display = "block";
     input_body.autoFocus = true;
@@ -259,7 +273,7 @@ function changePostListener(element, input_body, post) {
     };
 
 function setupPagination(totalPosts) {
-    let postsPerPage = 4;
+    let postsPerPage = 10;
     totalPages = Math.ceil(totalPosts / postsPerPage);
     const pagination = document.querySelector('.pagination');
     
@@ -346,9 +360,12 @@ function createPostDiv(post) {
     const likes_image = document.createElement('img')
     const likes = document.createElement('p')
     
-    author.href = `${post.author_username}`; 
+    author.href = `/profile/${post.author_username}/`; 
     author.innerHTML = `<strong>${post.author_username}</strong>`;
     author.style.textAlign = 'center';
+    author.addEventListener('click', function(event) {
+        event.stopPropagation();
+    });
     body.innerHTML = `${post.body}`;
     input_body.innerHTML = `${post.body}`;
     input_body.className = 'textara_field';
@@ -369,12 +386,12 @@ function createPostDiv(post) {
         likePost(post.id);
     });
     likes_container.append(likes_image, likes);
-
-    if (post.author_username === "{{request.user.username}}") {
+    const username = document.getElementById('user-data').getAttribute('data-username');
+    if (post.author_username === username) {
         const edit_button = document.createElement('button');
         edit_button.innerText = "Edit";  
         edit_button.className = "edit_btn"
-        edit_button.onclick = () => changePostListener(comment_container, input_body, post); 
+        edit_button.onclick = (event) => changePostListener(comment_container, input_body, post, event); 
         comment_container.append(edit_button);
     }
     author_container.className = "author_container";
@@ -397,20 +414,4 @@ document.addEventListener('DOMContentLoaded', () => {
     sendNewPost();
     displayProfileElements();
     loadPosts(currentPage);
-
-    // document.querySelector('#prev-button').addEventListener('click', () => {
-    //     console.log("Prev clicked. Current page:", currentPage);
-    //     if (currentPage > 1) {
-    //         currentPage -= 1;
-    //         loadPosts(currentPage);
-    //     }
-    // });
-    
-    // document.querySelector('#next-button').addEventListener('click', () => {
-    //     console.log("Next clicked. Current page:", currentPage);
-    //     if (currentPage < totalPages) {
-    //         currentPage += 1;
-    //         loadPosts(currentPage);
-    //     }
-    // });
 });

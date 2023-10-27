@@ -1,93 +1,78 @@
+# Django imports
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from .models import User, PostModel
-from rest_framework import serializers
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+
+
+# DRF (Django Rest Framework) imports
 from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
-from . models import User, LikeModel, CommentModel
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-from django.shortcuts import redirect
+from rest_framework.response import Response
+
+# Local imports
+from .models import User, PostModel, LikeModel, CommentModel
+from . serializers import PostModelSerializer, CommentModelSerializer
 
 
 @login_required(login_url='login')
 def index(request, username="all"):
+    """Render the main page."""
     return render(request, "network/index.html", {"username": username})
 
 @login_required(login_url='login')
 def profile(request, username):
+    """Display user profile and handle follow/unfollow actions."""
     if username != 'all':
+        current_user = request.user 
         user = get_object_or_404(User, username=username)
         followers = user.followers.all()
         followings = user.following.all()
-        is_follower_value = is_following(request.user, followers)
+        is_follower_value = current_user in followers
 
         if request.method == "POST":
-             # Sprawdzenie, czy użytkownik chce aktualizować swoje zdjęcie
+            # Check if the user wants to update their photo
             if 'avatar' in request.FILES:
                 user.profile_picture = request.FILES['avatar']
                 user.save()
                 return redirect('profile', username=username)
+            
+            # Follow/unfollow logic
             user_to_follow_username = request.POST.get("follow")
             if user_to_follow_username:
                 current_user = request.user
                 user_to_follow = User.objects.get(username=user_to_follow_username)
-
-                # Sprawdzanie ponowne, ponieważ wartość mogła się zmienić
-                is_follower_value = is_following(request.user, user_to_follow.followers.all())
+                is_follower_value = current_user in user_to_follow.followers.all()
 
                 if not is_follower_value:
                     current_user.following.add(user_to_follow)
                     user_to_follow.followers.add(current_user)
-                    # is_follower_value = True
                 else:
                     current_user.following.remove(user_to_follow)
                     user_to_follow.followers.remove(current_user)
-                    # is_follower_value = False
 
-                # Aktualizacja wartości is_follower_value po dokonaniu zmian
-                # is_follower_value = is_following(request.user, user.followers.all())
                 return redirect('profile', username=username)
 
-    return render(request, "network/index.html", {"username": username, "followers": followers, "followings": followings, 'is_follower': is_follower_value})
+    return render(request, "network/index.html", {
+        "username": username,
+        "followers": followers,
+        "followings": followings,
+        'is_follower': is_follower_value
+    })
 
 def is_following(current_user, followers):
     return current_user in followers
 
 
-from django.utils.html import urlize
-
-def custom_urlize(value):
-    value = urlize(value)
-    # Dodanie atrybutu target="_blank" do wszystkich odnośników
-    return value.replace('<a ', '<a target="_blank" ')
-
-class UrlizedCharField(serializers.CharField):
-
-    def to_representation(self, value):
-        return custom_urlize(value)
-
-class PostModelSerializer(serializers.ModelSerializer):
-    author_username = serializers.CharField(source='author.username', read_only=True)
-    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", required=False, read_only=True) 
-    profile_image = serializers.ImageField(source='author.profile_picture', read_only=True)
-    likes = serializers.IntegerField(source='post_likes.count', read_only=True)
-    body = UrlizedCharField()
-
-    class Meta:
-        model = PostModel
-        fields = ('id', 'author', 'author_username', 'body', 'created_at', 'profile_image', 'likes')
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def post_list(request):
+    """Handle fetching and creating posts."""
     if request.method == 'GET':
         # obsługa żądania GET (pobieranie postów i paginacja)
         if 'username' in request.query_params:
@@ -105,7 +90,7 @@ def post_list(request):
             posts = PostModel.objects.all().order_by('-created_at')
 
         paginator = PageNumberPagination()
-        paginator.page_size = 4  # Ustaw liczbę postów na stronę
+        paginator.page_size = 10  # Ustaw liczbę postów na stronę
         result_page = paginator.paginate_queryset(posts, request)
 
         serializer = PostModelSerializer(result_page, many=True)
@@ -121,6 +106,7 @@ def post_list(request):
 
 @api_view(['PUT'])
 def post_update(request, id):
+    """Handle updating a post."""
     try:
         post = PostModel.objects.get(id=id)
     except PostModel.DoesNotExist:
@@ -136,6 +122,7 @@ def post_update(request, id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def like_post(request, post_id):
+    """Handle post liking and unliking."""
     post = PostModel.objects.get(id=post_id)  # Pobranie obiektu publikacji.
     
     # Sprawdzenie, czy użytkownik już polubił post.
@@ -148,22 +135,10 @@ def like_post(request, post_id):
     return Response({'status': 'liked'})  # Zwrócenie odpowiedzi, że post został polubiony.
 
 
-from rest_framework import serializers
-from .models import CommentModel, User
-
-
-
-class CommentModelSerializer(serializers.ModelSerializer):
-    author_username = serializers.CharField(source='user.username', read_only=True)
-    profile_image = serializers.ImageField(source='user.profile_picture', read_only=True)
-    class Meta:
-        model = CommentModel
-        fields = ['id', 'user', 'post', 'text', 'created_at', 'author_username', 'profile_image']
-
-
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def add_comment_to_post(request, post_id):
+    """Handle fetching and adding comments to a post."""
     post = get_object_or_404(PostModel, id=post_id)
     
     if request.method == 'GET':
