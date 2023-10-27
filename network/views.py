@@ -74,7 +74,6 @@ def is_following(current_user, followers):
 def post_list(request):
     """Handle fetching and creating posts."""
     if request.method == 'GET':
-        # obsługa żądania GET (pobieranie postów i paginacja)
         if 'username' in request.query_params:
             username = request.query_params['username']
             if username == 'all':
@@ -97,7 +96,6 @@ def post_list(request):
         return paginator.get_paginated_response(serializer.data)
 
     elif request.method == 'POST':
-        # obsługa żądania POST (tworzenie nowego posta)
         serializer = PostModelSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(author=request.user)
@@ -123,16 +121,14 @@ def post_update(request, id):
 @permission_classes([IsAuthenticated])
 def like_post(request, post_id):
     """Handle post liking and unliking."""
-    post = PostModel.objects.get(id=post_id)  # Pobranie obiektu publikacji.
+    post = PostModel.objects.get(id=post_id)  
     
-    # Sprawdzenie, czy użytkownik już polubił post.
     if LikeModel.objects.filter(user=request.user, post=post).exists():
         LikeModel.objects.filter(user=request.user, post=post).delete()
-        return Response({'status': 'unliked'})  # Zwrócenie odpowiedzi, że polubienie zostało usunięte.
+        return Response({'status': 'unliked'}) 
 
-    # Dodanie polubienia.
     LikeModel.objects.create(user=request.user, post=post)
-    return Response({'status': 'liked'})  # Zwrócenie odpowiedzi, że post został polubiony.
+    return Response({'status': 'liked'}) 
 
 
 @api_view(['GET', 'POST'])
